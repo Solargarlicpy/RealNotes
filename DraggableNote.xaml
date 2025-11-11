@@ -1,0 +1,35 @@
+<UserControl x:Class="RealNotes.DraggableNote"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="60" MinHeight="40"
+             Focusable="True">
+    <Border x:Name="OuterBorder" BorderThickness="1" BorderBrush="Gray" CornerRadius="4" Background="Transparent">
+        <Grid>
+            <TextBox x:Name="InnerTextBox"
+                     Margin="6"
+                     Background="{Binding NoteBackground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                     Text="{Binding NoteText, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto"/>
+            <!-- Drag handle using a thumb control - user clicks and drags this to move the note -->
+            <Thumb x:Name="DragThumb"
+                   Width="16" Height="16"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Margin="4"
+                   Cursor="SizeAll">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="#DDDDDD" CornerRadius="2" BorderBrush="Gray" BorderThickness="1">
+                            <TextBlock Text="⋮" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+
+            <!-- Bottom right resize thumb -->
+            <Thumb x:Name="ResizeThumb" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="2"
+                   Cursor="SizeNWSE" />
+        </Grid>
+    </Border>
+</UserControl>
