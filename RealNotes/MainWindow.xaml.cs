@@ -209,6 +209,9 @@ namespace RealNotes
 
             NotesCanvas.Children.Add(note);
 
+            // ensure the new note renders on top
+            BringNoteToFront(note);
+
             // select the new note
             SelectNote(note);
             note.FocusInnerTextBox();
@@ -245,6 +248,9 @@ namespace RealNotes
 
             _selectedNote = note;
             _selectedNote.IsSelected = true;
+
+            // ensure the selected note is on top
+            BringNoteToFront(note);
         }
 
         private void NotesCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -288,6 +294,28 @@ namespace RealNotes
                     NotesCanvas.Children.Remove(_selectedNote);
                 _selectedNote = null;
             }
+        }
+
+        // bring a note to the top of the Canvas z-order
+        private void BringNoteToFront(DraggableNote note)
+        {
+            int max = int.MinValue;
+            foreach (UIElement child in NotesCanvas.Children)
+            {
+                if (child == note) continue;
+                int z = Canvas.GetZIndex(child);
+                if (z > max) max = z;
+            }
+
+            if (max == int.MinValue) max = 0;
+            Canvas.SetZIndex(note, max + 1);
+        }
+
+        private void NormalizeZIndices()
+        {
+            int z = 0;
+            foreach (UIElement child in NotesCanvas.Children)
+                Canvas.SetZIndex(child, z++);
         }
     }
 }
