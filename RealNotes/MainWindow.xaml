@@ -30,7 +30,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Left spacing (for centering) -->
-                <StackPanel Grid.Column="0"/>
+                <StackPanel Grid.Column="1"/>
 
                 <!-- Centered toolbar buttons -->
                 <StackPanel Grid.Column="1"
@@ -56,7 +56,9 @@
                             Background="MediumAquamarine"
                             MinWidth="100"
                             FontSize="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource ScaleFontConverter}, ConverterParameter=0.02}" />
-
+                    <Button Content="Save" Click="SaveButton_Click" Margin="4" Padding="6,3" MinWidth="80" Background="GreenYellow"/>
+                    <Button Content="Load" Click="LoadButton_Click" Margin="4" Padding="6,3" MinWidth="80" Background="Cyan"/>
+                    
                     <!-- ComboBox now matches the buttons' sizing and font scaling -->
                     <ComboBox x:Name="ColorPicker"
                               MinWidth="100"

@@ -3,24 +3,121 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using RealNotes; // Change made here
+using System.IO;
+using System.Text.Json;
+using Microsoft.Win32;
+using System.ComponentModel;
+using RealNotes; 
 
 namespace RealNotes
 {
     public partial class MainWindow : Window
     {
-        // now track selected wrapper control
+        // track selected wrapper control
         private DraggableNote? _selectedNote;
 
         public MainWindow()
         {
             InitializeComponent();
-
-            // ensure default preview is correct
+            this.Loaded += (_, _) => { var p = GetDefaultSavePath(); if (File.Exists(p)) LoadNotes(p); };
+            this.Closing += (_, _) => { SaveNotes(GetDefaultSavePath()); };
+            // ensure default preview is correct // THIS NEEDS EDITING //
             ColorPicker.SelectedIndex = 0;
             UpdateColorPickerPreview();
         }
+        private class SavedNoteDto
+        {
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Width { get; set; }
+            public double Height { get; set; }
+            public string Text { get; set; } = "";
+            public string Color { get; set; } = "#FFFFFF";
+        }
 
+        private string GetDefaultSavePath()
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RealNotes");
+            Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "notes.json");
+        }
+        // Save notes method
+        public void SaveNotes(string path)
+        {
+            try
+            {
+                var list = new List<SavedNoteDto>();
+                foreach (var child in NotesCanvas.Children)
+                {
+                    if (child is DraggableNote dn)
+                    {
+                        double x = Canvas.GetLeft(dn); if (double.IsNaN(x)) x = 0;
+                        double y = Canvas.GetTop(dn); if (double.IsNaN(y)) y = 0;
+                        string colorStr = "#FFFFFF";
+                        if (dn.NoteBackground is SolidColorBrush scb)
+                            colorStr = scb.Color.ToString(); // "#AARRGGBB"
+                        list.Add(new SavedNoteDto
+                        {
+                            X = x,
+                            Y = y,
+                            Width = dn.Width,
+                            Height = dn.Height,
+                            Text = dn.NoteText ?? "",
+                            Color = colorStr
+                        });
+                    }
+                }
+                var opts = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(path, JsonSerializer.Serialize(list, opts));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Save failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        // Load notes method
+        public void LoadNotes(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return;
+                var json = File.ReadAllText(path);
+                var list = JsonSerializer.Deserialize<List<SavedNoteDto>>(json);
+                if (list == null) return;
+
+                NotesCanvas.Children.Clear();
+                foreach (var dto in list)
+                {
+                    var note = new DraggableNote
+                    {
+                        Width = dto.Width > 0 ? dto.Width : 150,
+                        Height = dto.Height > 0 ? dto.Height : 150,
+                        NoteText = dto.Text ?? ""
+                    };
+
+                    // set color safely
+                    try
+                    {
+                        var colorObj = ColorConverter.ConvertFromString(dto.Color);
+                        if (colorObj is Color c)
+                            note.NoteBackground = new SolidColorBrush(c);
+                    }
+                    catch { /* ignore color parse errors */ }
+
+                    Canvas.SetLeft(note, dto.X);
+                    Canvas.SetTop(note, dto.Y);
+
+                    note.NoteClicked += Note_NoteClicked;
+                    note.NoteDeleted += Note_NoteDeleted;
+
+                    NotesCanvas.Children.Add(note);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Load failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void ColorPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ColorPicker.SelectedItem is ComboBoxItem selectedItem &&
@@ -28,7 +125,7 @@ namespace RealNotes
             {
                 var brush = GetBrushForName(colorName);
 
-                // Use the ComboBox itself as the preview: set its Background and readable Foreground.
+                // Use the ComboBox itself as the preview: set its Background and readable Foreground // THIS NEEDS EDITING //
                 ColorPicker.Background = brush;
                 if (brush is SolidColorBrush solid)
                 {
@@ -47,7 +144,8 @@ namespace RealNotes
             }
         }
 
-        private Brush GetBrushForName(string colorName) =>
+        // Change return type to SolidColorBrush and mark as static
+        private static SolidColorBrush GetBrushForName(string colorName) =>
             colorName switch
             {
                 "Yellow" => Brushes.Yellow,
@@ -61,6 +159,7 @@ namespace RealNotes
                 _ => Brushes.LightGray
             };
 
+        // THIS NEEDS EDITING //
         private void UpdateColorPickerPreview()
         {
             if (ColorPicker.SelectedItem is ComboBoxItem item && item.Content is string name)
@@ -75,12 +174,23 @@ namespace RealNotes
                 }
             }
         }
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog { Filter = "JSON files|*.json", FileName = "notes.json", InitialDirectory = Path.GetDirectoryName(GetDefaultSavePath()) };
+            if (dlg.ShowDialog() == true) SaveNotes(dlg.FileName);
+        }
+
+        private void LoadButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog { Filter = "JSON files|*.json" };
+            if (dlg.ShowDialog() == true) LoadNotes(dlg.FileName);
+        }
 
         private void AddNote_Click(object sender, RoutedEventArgs e)
         {
-            var initialBrush = (ColorPicker.SelectedItem is ComboBoxItem sel && sel.Content is string n) ? GetBrushForName(n) : Brushes.LightYellow;
+            var initialBrush = (ColorPicker.SelectedItem is ComboBoxItem sel && sel.Content is string n) ? GetBrushForName(n) : Brushes.LightYellow; // This handles what the starting color of the note should be
 
-            var note = new DraggableNote
+            var note = new DraggableNote 
             {
                 Width = 150,
                 Height = 150,
@@ -88,7 +198,7 @@ namespace RealNotes
                 NoteBackground = initialBrush
             };
 
-            // place in canvas - staggered placement
+            // place in canvas staggered placement
             double left = 10 + (NotesCanvas.Children.Count % 10) * 20;
             double top = 10 + (NotesCanvas.Children.Count / 10) * 20;
             Canvas.SetLeft(note, left);

@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows.Data;
 
 
-namespace RealNotes   // This should match your project's namespace
+namespace RealNotes   // This matches the project's namespace
 {
     public class ScaleFontConverter : IValueConverter
     {
